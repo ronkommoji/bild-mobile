@@ -117,14 +117,21 @@ export default function TaskDetailScreen() {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.badges}>
-          <View style={[styles.badge, { backgroundColor: priority.bg }]}><Text style={[styles.badgeText, { color: priority.color }]}>{priority.label} Priority</Text></View>
-          <View style={[styles.badge, { backgroundColor: status.bg }]}><Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text></View>
-        </View>
         <Text style={[styles.title, { color: colors.text }]}>{task.title}</Text>
-        {task.location && (
-          <View style={styles.locationRow}><Ionicons name="location-outline" size={16} color={colors.textLight} /><Text style={[styles.location, { color: colors.textLight }]}> {task.location}</Text></View>
-        )}
+        <View style={styles.metaRow}>
+          <View style={styles.locationRow}>
+            {task.location ? (
+              <>
+                <Ionicons name="location-outline" size={16} color={colors.textLight} />
+                <Text style={[styles.location, { color: colors.textLight }]}> {task.location}</Text>
+              </>
+            ) : null}
+          </View>
+          <View style={styles.badges}>
+            <View style={[styles.badge, { backgroundColor: priority.bg }]}><Text style={[styles.badgeText, { color: priority.color }]}>{priority.label}</Text></View>
+            <View style={[styles.badge, { backgroundColor: status.bg }]}><Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text></View>
+          </View>
+        </View>
         {task.description && <View style={styles.section}><Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Description</Text><Text style={[styles.description, { color: colors.text }]}>{task.description}</Text></View>}
         {task.due_date && <View style={styles.section}><Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Due Date</Text><Text style={[styles.meta, { color: colors.text }]}>{new Date(task.due_date).toLocaleDateString()}</Text></View>}
         {task.blocked_reason && (
@@ -225,13 +232,14 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { flexDirection: 'row', alignItems: 'center' },
   backText: { fontSize: 17, fontWeight: '600' },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  badges: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  badgeText: { fontSize: 13, fontWeight: '700' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 100 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
   location: { fontSize: 16 },
+  badges: { flexDirection: 'row', gap: 8 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  badgeText: { fontSize: 12, fontWeight: '700' },
+  title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
   section: { marginTop: 24 },
   sectionLabel: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   description: { fontSize: 16, lineHeight: 24 },
