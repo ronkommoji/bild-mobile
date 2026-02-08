@@ -20,7 +20,7 @@ function RootLayoutNav() {
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
-      router.replace('/(tabs)/today');
+      router.replace('/(tabs)/tasks');
     }
   }, [session, authLoading, segments]);
 

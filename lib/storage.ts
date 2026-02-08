@@ -72,3 +72,24 @@ export async function uploadVoiceNote(
     return null;
   }
 }
+
+const PROJECT_FILES_BUCKET = 'project-files';
+
+/**
+ * Get a signed URL to view a project file (read-only). Use for opening PDFs/docs in browser or system viewer.
+ */
+export async function getProjectFileViewUrl(filePath: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.storage
+      .from(PROJECT_FILES_BUCKET)
+      .createSignedUrl(filePath, 60 * 60); // 1 hour
+    if (error) {
+      console.error('Project file signed URL error:', error);
+      return null;
+    }
+    return data?.signedUrl ?? null;
+  } catch (error) {
+    console.error('Project file signed URL error:', error);
+    return null;
+  }
+}

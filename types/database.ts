@@ -151,12 +151,56 @@ export type Database = {
           },
         ]
       }
+      project_files: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          file_path: string
+          file_size: number | null
+          content_type: string | null
+          uploaded_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          file_path: string
+          file_size?: number | null
+          content_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          file_path?: string
+          file_size?: number | null
+          content_type?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
+          blueprint_file_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
+          gemini_file_search_store_name: string | null
+          gemini_file_search_synced_at: string | null
           id: string
           join_code: string
           name: string
@@ -164,9 +208,12 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          blueprint_file_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          gemini_file_search_store_name?: string | null
+          gemini_file_search_synced_at?: string | null
           id?: string
           join_code?: string
           name: string
@@ -174,15 +221,78 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          blueprint_file_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          gemini_file_search_store_name?: string | null
+          gemini_file_search_synced_at?: string | null
           id?: string
           join_code?: string
           name?: string
           status?: string | null
         }
         Relationships: []
+      }
+      project_blueprint_rooms: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          points: Json
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          points?: Json
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          points?: Json
+          created_at?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "project_blueprint_rooms_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+        ]
+      }
+      project_blueprint_pins: {
+        Row: {
+          id: string
+          project_id: string
+          task_id: string
+          room_id: string | null
+          x: number
+          y: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          task_id: string
+          room_id?: string | null
+          x: number
+          y: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          task_id?: string
+          room_id?: string | null
+          x?: number
+          y?: number
+          created_at?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "project_blueprint_pins_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+          { foreignKeyName: "project_blueprint_pins_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "project_blueprint_pins_room_id_fkey"; columns: ["room_id"]; isOneToOne: false; referencedRelation: "project_blueprint_rooms"; referencedColumns: ["id"] },
+        ]
       }
       task_proofs: {
         Row: {
@@ -281,6 +391,36 @@ export type Database = {
           },
         ]
       }
+      task_comments: {
+        Row: {
+          id: string
+          task_id: string
+          user_id: string
+          content: string
+          mentions: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          user_id: string
+          content: string
+          mentions?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          user_id?: string
+          content?: string
+          mentions?: Json | null
+          created_at?: string | null
+        }
+        Relationships: [
+          { foreignKeyName: "task_comments_task_id_fkey"; columns: ["task_id"]; isOneToOne: false; referencedRelation: "tasks"; referencedColumns: ["id"] },
+          { foreignKeyName: "task_comments_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -304,8 +444,17 @@ export type Database = {
 // Convenience types
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Project = Database['public']['Tables']['projects']['Row'];
+export type ProjectFile = Database['public']['Tables']['project_files']['Row'];
 export type ProjectMember = Database['public']['Tables']['project_members']['Row'];
 export type Task = Database['public']['Tables']['tasks']['Row'];
 export type TaskProof = Database['public']['Tables']['task_proofs']['Row'];
 export type ChatMessage = Database['public']['Tables']['chat_messages']['Row'];
 export type ActivityFeedItem = Database['public']['Tables']['activity_feed']['Row'];
+export type TaskComment = Database['public']['Tables']['task_comments']['Row'];
+export type ProjectBlueprintRoom = Database['public']['Tables']['project_blueprint_rooms']['Row'];
+export type ProjectBlueprintPin = Database['public']['Tables']['project_blueprint_pins']['Row'];
+
+// Blueprint view types (points in image pixel coordinates)
+export type BlueprintPoint = { x: number; y: number };
+export type BlueprintRoom = { id: string; name: string; points: BlueprintPoint[] };
+export type BlueprintPin = { id: string; taskId: string; roomId: string | null; x: number; y: number };

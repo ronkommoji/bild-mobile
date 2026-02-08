@@ -163,10 +163,17 @@ export default function ProjectSwitcher() {
                   <View style={styles.emptyState}>
                     <Ionicons name="business-outline" size={48} color={colors.textMuted} />
                     <Text style={[styles.emptyText, { color: colors.text }]}>No projects yet</Text>
-                    <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Join with a code or create your first project</Text>
+                    <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Join with a code to get started</Text>
+                    <TouchableOpacity style={[styles.joinProjectButton, { borderColor: colors.primary, marginTop: 24 }]} onPress={() => setShowJoin(true)}>
+                      <Ionicons name="log-in-outline" size={20} color={colors.primary} />
+                      <Text style={[styles.joinProjectButtonText, { color: colors.primary }]}> Join project</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
-                  <FlatList data={projects} keyExtractor={(item) => item.id} contentContainerStyle={styles.list}
+                  <FlatList
+                    data={projects}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.list}
                     renderItem={({ item }) => (
                       <View style={[styles.projectItemRow, { borderColor: colors.border }]}>
                         <TouchableOpacity
@@ -185,16 +192,14 @@ export default function ProjectSwitcher() {
                         </TouchableOpacity>
                       </View>
                     )}
+                    ListFooterComponent={
+                      <TouchableOpacity style={[styles.joinProjectButton, { borderColor: colors.primary }]} onPress={() => setShowJoin(true)}>
+                        <Ionicons name="log-in-outline" size={20} color={colors.primary} />
+                        <Text style={[styles.joinProjectButtonText, { color: colors.primary }]}> Join project</Text>
+                      </TouchableOpacity>
+                    }
                   />
                 )}
-                <TouchableOpacity style={[styles.newProjectButton, { borderColor: colors.primary }]} onPress={() => setShowJoin(true)}>
-                  <Ionicons name="log-in-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.newProjectButtonText, { color: colors.primary }]}> Join project</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.newProjectButton, { borderColor: colors.primary }]} onPress={() => setShowCreate(true)}>
-                  <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.newProjectButtonText, { color: colors.primary }]}> New project</Text>
-                </TouchableOpacity>
               </>
             )}
           </View>
@@ -234,8 +239,8 @@ const styles = StyleSheet.create({
   cancelBtnText: { fontSize: 16, fontWeight: '600' },
   createBtn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center' },
   createBtnText: { fontSize: 16, color: '#FFFFFF', fontWeight: '600' },
-  newProjectButton: { marginHorizontal: 16, marginBottom: 10, padding: 16, borderRadius: 12, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  newProjectButtonText: { fontSize: 16, fontWeight: '600' },
+  joinProjectButton: { marginTop: 8, marginBottom: 24, padding: 16, borderRadius: 12, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  joinProjectButtonText: { fontSize: 16, fontWeight: '600' },
   joinCodeSection: { marginHorizontal: 0, marginBottom: 16, padding: 16, borderRadius: 12, borderWidth: 1 },
   joinCodeLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
   joinCodeValue: { fontSize: 22, fontWeight: '700', letterSpacing: 2 },

@@ -24,6 +24,7 @@ interface AppContextType {
   createProject: (name: string, description?: string, address?: string) => Promise<{ error: any; data?: any }>;
   updateProject: (projectId: string, updates: { name?: string; description?: string; address?: string }) => Promise<{ error: any; data?: any }>;
   joinProjectByCode: (code: string) => Promise<{ error: Error | null; data?: Project }>;
+  leaveProject: (projectId: string) => Promise<{ error: Error | null }>;
   refreshProjects: () => Promise<void>;
 }
 
@@ -51,6 +52,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createProject: projectsHook.createProject,
     updateProject: projectsHook.updateProject,
     joinProjectByCode: projectsHook.joinProjectByCode,
+    leaveProject: projectsHook.leaveProject,
     refreshProjects: projectsHook.refreshProjects,
   };
 

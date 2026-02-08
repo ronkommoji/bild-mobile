@@ -1,0 +1,42 @@
+CONTACTS AND ROLES — PROJECT TEAM
+
+Use this list for day-to-day coordination, escalation, and emergency contact. Update as the team changes.
+
+PROJECT MANAGER (PM)
+- Primary point of contact for schedule, budget, and contract.
+- Approves change orders, major submittals, and contract-related issues.
+- Contact: See project directory (phone and email on project board).
+
+SITE SUPERINTENDENT
+- Day-to-day site operations, sequencing, and trade coordination.
+- Authority for site access, logistics, and safety compliance.
+- First point of contact for field issues and daily coordination.
+- Contact: See project directory. On-site during work hours; after-hours emergency number posted in trailer.
+
+SITE SAFETY OFFICER
+- PPE, hazard reporting, incident investigation, and safety training.
+- Report all incidents and near-misses to the Safety Officer and Superintendent.
+- Contact: See project directory.
+
+ARCHITECT / DESIGN
+- Design clarifications, RFIs, and drawing revisions.
+- Submittal review for conformance to design intent.
+- Contact: As per contract (typically project architect or CA).
+
+OWNER / CLIENT
+- Permits, approvals, and owner-furnished items.
+- Major decisions and contract amendments.
+- Contact: As per contract; PM coordinates with owner.
+
+KEY SUBCONTRACTORS (EXAMPLES — ADAPT TO PROJECT)
+- General / civil: [Name] — Superintendent: [Name]
+- Structural: [Name] — Foreman: [Name]
+- MEP: [Name] — Lead: [Name]
+- Finishes: [Name] — Lead: [Name]
+
+EMERGENCY
+- 911 for life safety and medical.
+- Then notify Site Superintendent and, if needed, Project Manager.
+- Muster point: North parking lot (see site safety guidelines).
+
+Document updated at project start and when roles change. Ensure all personnel know who the Superintendent and Safety Officer are.

@@ -7,7 +7,7 @@ export default function Index() {
   if (authLoading) return null;
 
   if (session) {
-    return <Redirect href="/(tabs)/today" />;
+    return <Redirect href="/(tabs)/tasks" />;
   }
 
   return <Redirect href="/(auth)/login" />;

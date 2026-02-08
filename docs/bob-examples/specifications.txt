@@ -1,0 +1,30 @@
+SPECIFICATIONS AND STANDARDS — PROJECT REFERENCE
+
+This document summarizes materials, codes, tolerances, and inspection requirements. Full specification sections take precedence.
+
+CODES AND STANDARDS
+- Local building code (jurisdiction as per permit).
+- National building and fire codes as adopted.
+- All work to comply with applicable codes and approved drawings.
+
+MATERIALS (EXAMPLES — CONFIRM IN CONTRACT SPECS)
+- Structural: As per structural drawings and engineer’s specs (e.g. specified steel, concrete grade, reinforcement).
+- Envelope: Roofing, cladding, and flashing per approved submittals and manufacturer instructions.
+- MEP: Equipment and materials per mechanical, electrical, and plumbing spec sections and approved submittals.
+- Finishes: Paint, flooring, and trim per finish schedule and spec sections.
+
+TOLERANCES
+- Vertical and horizontal alignment per ACI and structural notes (e.g. ±1/4" in 10' for framing where noted).
+- Floor flatness and levelness per specified F-number or equivalent.
+- All tolerances as stated in the contract specifications; tighter tolerances only if explicitly required.
+
+INSPECTION AND TESTING
+- Hold points: Foundations (before pour), structural steel (connections), MEP rough-in (before concealment), and final commissioning as per spec.
+- Third-party inspections where required by code or contract (e.g. soils, structural, fire alarm).
+- All inspections must be passed and documented before proceeding to the next phase.
+
+SUBMITTALS
+- Submittals approved in writing before ordering or installing. No substitutions without written approval.
+- O&M manuals and as-builts required prior to substantial completion.
+
+For full requirements, always refer to the contract specification book and latest revision of the drawings.

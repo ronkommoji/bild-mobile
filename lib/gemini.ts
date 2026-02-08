@@ -165,3 +165,37 @@ Respond in JSON format only:
     return { isComplete: true };
   }
 }
+
+/**
+ * Bob: AI agent chat. Uses Gemini with context about project and optional file list (RAG-ready).
+ * When document content is available, it can be passed as fileContext for true RAG.
+ */
+export async function bobChat(
+  projectName: string,
+  userMessage: string,
+  fileNames: string[] = [],
+  fileContext?: string
+): Promise<string> {
+  try {
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const contextParts = [
+      `You are Bob, the AI assistant for the construction project "${projectName}".`,
+      'Answer questions helpfully and concisely. Use general construction knowledge and any provided context.',
+    ];
+    if (fileNames.length > 0) {
+      contextParts.push(`Project documents (from Files): ${fileNames.join(', ')}. When users ask about docs, refer to these by name when relevant.`);
+    }
+    if (fileContext?.trim()) {
+      contextParts.push('Relevant document content:\n' + fileContext.trim());
+    }
+    const systemPrompt = contextParts.join('\n');
+    const result = await model.generateContent([
+      { text: systemPrompt },
+      { text: `User: ${userMessage}\n\nBob:` },
+    ]);
+    return result.response.text().trim();
+  } catch (error) {
+    console.error('Bob chat error:', error);
+    return "Sorry, I couldn't process that. Please try again.";
+  }
+}

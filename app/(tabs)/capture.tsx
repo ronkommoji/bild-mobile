@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
   Alert, ActivityIndicator, SafeAreaView, FlatList,
@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTasks } from '../../hooks/useTasks';
@@ -15,12 +16,14 @@ import { supabase } from '../../lib/supabase';
 import VoiceRecorder from '../../components/VoiceRecorder';
 import { Task } from '../../types/database';
 
-type CaptureStep = 'select-task' | 'photos' | 'voice' | 'review';
+type CaptureStep = 'select-task' | 'photos' | 'voice' | 'review' | 'complete';
 
 export default function CaptureScreen() {
+  const router = useRouter();
+  const { taskId: paramTaskId } = useLocalSearchParams<{ taskId?: string }>();
   const { user, currentProject } = useApp();
   const { colors } = useTheme();
-  const { activeTasks } = useTasks(currentProject?.id, user?.id);
+  const { activeTasks, updateTaskStatus } = useTasks(currentProject?.id, user?.id);
   const [step, setStep] = useState<CaptureStep>('select-task');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -30,6 +33,18 @@ export default function CaptureScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    if (!paramTaskId || !currentProject) return;
+    const load = async () => {
+      const { data } = await supabase.from('tasks').select('*').eq('id', paramTaskId).eq('project_id', currentProject.id).single();
+      if (data) {
+        setSelectedTask(data as Task);
+        setStep('photos');
+      }
+    };
+    load();
+  }, [paramTaskId, currentProject?.id]);
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
@@ -69,13 +84,20 @@ export default function CaptureScreen() {
         await supabase.from('task_proofs').insert({ task_id: selectedTask.id, photo_url: photoUrl, voice_note_url: voiceUrl, transcript, submitted_by: user.id });
       }
       await supabase.from('activity_feed').insert({ project_id: currentProject.id, user_id: user.id, action: 'proof_submitted', task_id: selectedTask.id, metadata: { photo_count: photoUrls.length, has_voice: !!voiceUrl } });
-      Alert.alert('Proof Submitted!', 'Your proof has been uploaded.', [{ text: 'OK' }]);
-      setStep('select-task'); setSelectedTask(null); setPhotos([]); setVoiceUri(null); setTranscript('');
+      await updateTaskStatus(selectedTask.id, 'completed');
+      setStep('complete');
     } catch { Alert.alert('Error', 'Failed to submit proof. Please try again.'); }
     setSubmitting(false);
   };
 
-  const resetCapture = () => { setStep('select-task'); setSelectedTask(null); setPhotos([]); setVoiceUri(null); setTranscript(''); };
+  const resetCapture = () => {
+    setStep('select-task');
+    setSelectedTask(null);
+    setPhotos([]);
+    setVoiceUri(null);
+    setTranscript('');
+    if (paramTaskId) router.replace('/(tabs)/capture');
+  };
 
   if (!currentProject) {
     return (
@@ -83,7 +105,7 @@ export default function CaptureScreen() {
         <View style={styles.centered}>
           <Ionicons name="camera-outline" size={48} color={colors.textMuted} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No Project Selected</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>Select a project from the Today tab first</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>Select a project from the Blueprint tab first</Text>
         </View>
       </SafeAreaView>
     );
@@ -232,6 +254,27 @@ export default function CaptureScreen() {
       </View>
     </SafeAreaView>
   );
+
+  if (step === 'complete') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.centered}>
+          <View style={[styles.completeIconWrap, { backgroundColor: colors.success }]}>
+            <Ionicons name="checkmark-circle" size={64} color="#FFFFFF" />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Task complete</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+            {selectedTask?.title} has been marked complete with your photos and voice note.
+          </Text>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={resetCapture}>
+            <Text style={styles.primaryButtonText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -265,6 +308,7 @@ const styles = StyleSheet.create({
   removePhoto: { position: 'absolute', top: -4, right: -4, width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
   primaryButton: { borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 16 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  completeIconWrap: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   reviewContent: { padding: 20 },
   reviewSection: { marginBottom: 24 },
   reviewLabel: { fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Project, ProjectMember } from '../types/database';
+
+const CURRENT_PROJECT_ID_KEY = 'bild_current_project_id';
 
 export function useProjects(userId: string | undefined) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,7 +31,9 @@ export function useProjects(userId: string | undefined) {
 
       setProjects(data || []);
       if (data && data.length > 0 && !currentProject) {
-        setCurrentProject(data[0]);
+        const savedId = await AsyncStorage.getItem(CURRENT_PROJECT_ID_KEY);
+        const preferred = savedId ? data.find((p) => p.id === savedId) : null;
+        setCurrentProject(preferred || data[0]);
       }
     } else {
       setProjects([]);
@@ -57,6 +62,7 @@ export function useProjects(userId: string | undefined) {
 
   const switchProject = (project: Project) => {
     setCurrentProject(project);
+    AsyncStorage.setItem(CURRENT_PROJECT_ID_KEY, project.id);
   };
 
   const createProject = async (name: string, description?: string, address?: string) => {
@@ -77,6 +83,7 @@ export function useProjects(userId: string | undefined) {
       });
       await fetchProjects();
       setCurrentProject(data);
+      AsyncStorage.setItem(CURRENT_PROJECT_ID_KEY, data.id);
     }
 
     return { error, data };
@@ -110,9 +117,27 @@ export function useProjects(userId: string | undefined) {
     }
     if (parsed.project) {
       await fetchProjects();
-      setCurrentProject(parsed.project as Project);
+      const proj = parsed.project as Project;
+      setCurrentProject(proj);
+      AsyncStorage.setItem(CURRENT_PROJECT_ID_KEY, proj.id);
     }
     return { error: null, data: parsed.project as Project };
+  };
+
+  const leaveProject = async (projectId: string): Promise<{ error: Error | null }> => {
+    if (!userId) return { error: new Error('Not authenticated') };
+    const { error } = await supabase
+      .from('project_members')
+      .delete()
+      .eq('project_id', projectId)
+      .eq('user_id', userId);
+    if (error) return { error: error instanceof Error ? error : new Error(error.message) };
+    if (currentProject?.id === projectId) {
+      setCurrentProject(null);
+      await AsyncStorage.removeItem(CURRENT_PROJECT_ID_KEY);
+    }
+    await fetchProjects();
+    return { error: null };
   };
 
   return {
@@ -124,6 +149,7 @@ export function useProjects(userId: string | undefined) {
     createProject,
     updateProject,
     joinProjectByCode,
+    leaveProject,
     refreshProjects: fetchProjects,
     refreshMembers: fetchMembers,
   };

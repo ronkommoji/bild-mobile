@@ -1,20 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, SafeAreaView } from 'react-native';
+import {
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, SafeAreaView,
+  Modal, FlatList, TextInput, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useTaskComments } from '../../hooks/useTaskComments';
 import { Task, TaskProof } from '../../types/database';
 
 export default function TaskDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user, currentProject } = useApp();
+  const { user, currentProject, members } = useApp();
   const { colors, priorities, statusColors } = useTheme();
+  const { comments, sendComment } = useTaskComments(id);
   const [task, setTask] = useState<Task | null>(null);
   const [proofs, setProofs] = useState<TaskProof[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showComments, setShowComments] = useState(false);
+  const [commentInput, setCommentInput] = useState('');
+  const [mentionSearch, setMentionSearch] = useState('');
+  const [showMentionPicker, setShowMentionPicker] = useState(false);
+  const [pendingMentions, setPendingMentions] = useState<string[]>([]);
 
   useEffect(() => { fetchTask(); fetchProofs(); }, [id]);
 
@@ -34,9 +44,43 @@ export default function TaskDetailScreen() {
     if (error) Alert.alert('Error', error.message);
   };
 
-  const handleComplete = () => {
-    if (proofs.length === 0) { Alert.alert('Proof Required', 'Please submit at least one proof photo before completing this task. Use the Capture tab.', [{ text: 'OK' }]); return; }
-    Alert.alert('Complete Task', 'Mark this task as completed?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Complete', onPress: () => handleStatusChange('completed') }]);
+  const onCommentChange = (text: string) => {
+    setCommentInput(text);
+    const lastAt = text.lastIndexOf('@');
+    if (lastAt !== -1) {
+      const after = text.slice(lastAt + 1);
+      const hasSpace = after.includes(' ');
+      if (!hasSpace) {
+        setMentionSearch(after.toLowerCase());
+        setShowMentionPicker(true);
+        return;
+      }
+    }
+    setShowMentionPicker(false);
+  };
+
+  const memberOptions = members.filter((m) => {
+    const name = ((m as any).profile?.full_name || 'Member').toLowerCase();
+    return name.includes(mentionSearch);
+  });
+
+  const insertMention = (member: { user_id: string; profile?: { full_name: string } }) => {
+    const name = (member.profile?.full_name || 'Member').split(' ')[0];
+    const lastAt = commentInput.lastIndexOf('@');
+    const before = commentInput.slice(0, lastAt);
+    const after = commentInput.slice(lastAt).replace(/@[^\s]*$/, '');
+    setCommentInput(`${before}@${name} ${after}`);
+    setPendingMentions((prev) => (prev.includes(member.user_id) ? prev : [...prev, member.user_id]));
+    setShowMentionPicker(false);
+    setMentionSearch('');
+  };
+
+  const handleSendComment = async () => {
+    if (!commentInput.trim() || !user) return;
+    const content = commentInput.trim();
+    setCommentInput('');
+    await sendComment(user.id, content, pendingMentions);
+    setPendingMentions([]);
   };
 
   if (loading || !task) return <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}><Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading...</Text></SafeAreaView>;
@@ -69,6 +113,11 @@ export default function TaskDetailScreen() {
             <Text style={[styles.blockedReason, { color: colors.error }]}>{task.blocked_reason}</Text>
           </View>
         )}
+        <TouchableOpacity style={[styles.commentsCta, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => setShowComments(true)}>
+          <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+          <Text style={[styles.commentsCtaText, { color: colors.text }]}>Comments ({comments.length})</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Proof ({proofs.length} {proofs.length === 1 ? 'submission' : 'submissions'})</Text>
           {proofs.length === 0 ? <Text style={[styles.noProofs, { color: colors.textMuted }]}>No proof submitted yet</Text> : proofs.map((proof) => (
@@ -82,19 +131,68 @@ export default function TaskDetailScreen() {
           ))}
         </View>
       </ScrollView>
-      {task.status !== 'completed' && (
-        <View style={[styles.actionBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          {task.status === 'pending' && (
-            <TouchableOpacity style={[styles.secondaryButton, { borderColor: colors.primary }]} onPress={() => handleStatusChange('in_progress')}>
-              <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Start Task</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.completeButton, { backgroundColor: colors.success }]} onPress={handleComplete}>
-            <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.completeButtonText}> Complete Task</Text>
+      <View style={[styles.actionBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        {task.status === 'completed' ? (
+          <TouchableOpacity style={[styles.completeButton, { backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.border }]} onPress={() => handleStatusChange('pending')}>
+            <Ionicons name="arrow-undo-outline" size={20} color={colors.text} />
+            <Text style={[styles.completeButtonText, { color: colors.text }]}> Move to uncompleted</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        ) : (
+          <TouchableOpacity style={[styles.completeButton, { backgroundColor: colors.primary }]} onPress={() => router.push({ pathname: '/(tabs)/capture', params: { taskId: task.id } })}>
+            <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.completeButtonText}> Start task</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Comments / mini-chat modal */}
+      <Modal visible={showComments} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowComments(false)}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Comments</Text>
+            <TouchableOpacity onPress={() => setShowComments(false)}><Text style={[styles.cancelText, { color: colors.primary }]}>Done</Text></TouchableOpacity>
+          </View>
+          <Text style={[styles.mentionHint, { color: colors.textMuted }]}>Use @ to mention someone from the project</Text>
+          <FlatList
+            data={comments}
+            keyExtractor={(c) => c.id}
+            contentContainerStyle={styles.commentsList}
+            ListEmptyComponent={<Text style={[styles.emptyComments, { color: colors.textMuted }]}>No comments yet. Ask a question or @mention a teammate.</Text>}
+            renderItem={({ item }) => (
+              <View style={[styles.commentBubble, item.user_id === user?.id ? { alignSelf: 'flex-end', backgroundColor: colors.primary } : { alignSelf: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.commentSender, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>{(item as any).profile?.full_name || 'Someone'}</Text>
+                <Text style={[styles.commentText, { color: item.user_id === user?.id ? '#FFFFFF' : colors.text }]}>{item.content}</Text>
+                <Text style={[styles.commentTime, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{item.created_at ? new Date(item.created_at).toLocaleString() : ''}</Text>
+              </View>
+            )}
+          />
+          {showMentionPicker && memberOptions.length > 0 && (
+            <View style={[styles.mentionPicker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {memberOptions.map((m) => (
+                <TouchableOpacity key={m.user_id} style={styles.mentionOption} onPress={() => insertMention(m)}>
+                  <Text style={[styles.mentionOptionText, { color: colors.primary }]}>@{(m as any).profile?.full_name || 'Member'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+            <View style={[styles.commentInputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+              <TextInput
+                style={[styles.commentInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={commentInput}
+                onChangeText={onCommentChange}
+                placeholder="Message or @mention..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={1000}
+              />
+              <TouchableOpacity style={[styles.sendCommentBtn, { backgroundColor: colors.primary }, !commentInput.trim() && styles.sendDisabled]} onPress={handleSendComment} disabled={!commentInput.trim()}>
+                <Ionicons name="send" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -117,6 +215,8 @@ const styles = StyleSheet.create({
   meta: { fontSize: 16 },
   blockedSection: { backgroundColor: 'rgba(229,57,53,0.1)', borderRadius: 12, padding: 16 },
   blockedReason: { fontSize: 16, lineHeight: 22 },
+  commentsCta: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1, marginTop: 24 },
+  commentsCtaText: { fontSize: 16, fontWeight: '600', flex: 1 },
   noProofs: { fontSize: 15, fontStyle: 'italic' },
   proofCard: { borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1 },
   proofPhoto: { width: '100%', height: 200, borderRadius: 8, marginBottom: 8 },
@@ -129,4 +229,22 @@ const styles = StyleSheet.create({
   secondaryButtonText: { fontSize: 16, fontWeight: '700' },
   completeButton: { flex: 2, padding: 16, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   completeButtonText: { fontSize: 16, color: '#FFFFFF', fontWeight: '700' },
+  modalContainer: { flex: 1 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 20, fontWeight: '700' },
+  cancelText: { fontSize: 17, fontWeight: '600' },
+  mentionHint: { fontSize: 12, paddingHorizontal: 20, paddingTop: 8 },
+  commentsList: { padding: 16, paddingBottom: 12 },
+  emptyComments: { fontSize: 15, textAlign: 'center', paddingVertical: 24 },
+  commentBubble: { maxWidth: '85%', borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1 },
+  commentSender: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  commentText: { fontSize: 15, lineHeight: 20 },
+  commentTime: { fontSize: 11, marginTop: 4 },
+  mentionPicker: { marginHorizontal: 16, marginBottom: 8, borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
+  mentionOption: { padding: 12 },
+  mentionOptionText: { fontSize: 15, fontWeight: '600' },
+  commentInputRow: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 8, borderTopWidth: 1 },
+  commentInput: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100, borderWidth: 1 },
+  sendCommentBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  sendDisabled: { opacity: 0.5 },
 });

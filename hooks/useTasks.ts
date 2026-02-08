@@ -4,24 +4,23 @@ import { Task } from '../types/database';
 
 export function useTasks(projectId: string | undefined, userId: string | undefined) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [proofCountByTaskId, setProofCountByTaskId] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-
-    const today = new Date().toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('project_id', projectId)
-      .or(`due_date.eq.${today},due_date.is.null`)
-      .order('priority', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (!error) {
-      // Sort by priority: high first, then medium, then low
       const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
       const sorted = (data || []).sort(
         (a, b) =>
@@ -29,6 +28,16 @@ export function useTasks(projectId: string | undefined, userId: string | undefin
           (priorityOrder[b.priority || 'medium'] || 1)
       );
       setTasks(sorted);
+      const taskIds = sorted.map((t) => t.id);
+      if (taskIds.length > 0) {
+        const { data: proofRows } = await supabase.from('task_proofs').select('task_id').in('task_id', taskIds);
+        const count: Record<string, number> = {};
+        taskIds.forEach((id) => (count[id] = 0));
+        (proofRows || []).forEach((r: { task_id: string }) => { count[r.task_id] = (count[r.task_id] || 0) + 1; });
+        setProofCountByTaskId(count);
+      } else {
+        setProofCountByTaskId({});
+      }
     }
     setLoading(false);
   }, [projectId]);
@@ -110,6 +119,7 @@ export function useTasks(projectId: string | undefined, userId: string | undefin
 
   return {
     tasks,
+    proofCountByTaskId,
     myTasks,
     pendingTasks,
     activeTasks,

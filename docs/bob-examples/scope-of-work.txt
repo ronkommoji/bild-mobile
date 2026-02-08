@@ -1,0 +1,32 @@
+SCOPE OF WORK — CONSTRUCTION PROJECT
+
+PROJECT NAME: As per contract / project setup
+DOCUMENT PURPOSE: Define phases, deliverables, exclusions, and assumptions for construction scope.
+
+PHASES
+1. Site prep and foundations — Clearing, excavation, footings, and foundation work as per drawings.
+2. Structure and envelope — Framing, roofing, cladding, windows and doors to lock-up.
+3. MEP rough-in — Mechanical, electrical, and plumbing rough-in per specifications.
+4. Interior finishes — Drywall, flooring, paint, trim, fixtures as per finish schedule.
+5. Exterior and site — Landscaping, paving, fencing, and final site work.
+6. Commissioning and handover — Testing, punch list, as-builts, and owner handover.
+
+DELIVERABLES
+- Completed work in accordance with contract documents (drawings and specifications).
+- As-built drawings and O&M manuals for installed systems.
+- Warranties and compliance certificates as specified.
+- Punch list completion and signed handover certificate.
+
+EXCLUSIONS (OUT OF SCOPE)
+- Work not shown or specified in the contract documents.
+- Owner-furnished equipment installation unless explicitly included.
+- Remediation of pre-existing conditions (e.g. undocumented contamination) unless covered by change order.
+- Off-site fabrication or supply beyond what is stated in the contract.
+
+ASSUMPTIONS
+- Owner provides timely access, permits, and approvals as needed to maintain schedule.
+- Soils and site conditions are as represented in the geotechnical report; differing conditions may result in change orders.
+- Design documents are complete and coordinated at notice to proceed; design changes may affect schedule and cost.
+- Weather and force majeure delays handled per contract terms.
+
+Approved by Project Manager. Revisions tracked in document control.

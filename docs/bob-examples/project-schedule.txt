@@ -1,0 +1,29 @@
+PROJECT SCHEDULE — KEY DATES AND MILESTONES
+
+Schedule is maintained in the project scheduling tool; this document summarizes key milestones and dependencies for quick reference.
+
+KEY MILESTONES
+- Notice to Proceed (NTP): As per contract — baseline for all dates.
+- Mobilization complete: 1 week after NTP.
+- Foundations complete: 6 weeks after NTP (weather-dependent).
+- Structure / framing complete: 14 weeks after NTP.
+- Building enclosed (lock-up): 18 weeks after NTP.
+- MEP rough-in complete: 22 weeks after NTP.
+- Interior finishes complete: 28 weeks after NTP.
+- Substantial completion: 32 weeks after NTP (target).
+- Final inspection and handover: 34 weeks after NTP.
+
+DEPENDENCIES
+- Foundation inspection must pass before above-grade framing.
+- Envelope sealed before start of interior MEP and finishes.
+- All MEP signed off before ceiling close-up and finish work.
+- All trades sign-off and commissioning complete before substantial completion.
+
+CRITICAL PATH (SUMMARY)
+Site prep → Foundations → Structure → Envelope → MEP rough-in → Finishes → Commissioning → Handover.
+
+WEEKLY UPDATES
+- Schedule updated weekly; look-ahead issued every Monday.
+- Delays or changes affecting milestones must be reported to Project Manager and Superintendent immediately.
+
+Document is a summary. Always refer to the current approved schedule in the scheduling system for detailed dates and logic.
