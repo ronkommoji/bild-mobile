@@ -161,44 +161,46 @@ export default function CaptureScreen() {
     }
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.stepHeader, { borderBottomColor: colors.border }]}>
-          <View style={styles.stepHeaderRow}>
-            <TouchableOpacity onPress={resetCapture} style={styles.navBtn}>
-              <Ionicons name="arrow-back" size={20} color={colors.primary} /><Text style={[styles.navText, { color: colors.primary }]}> Back</Text>
-            </TouchableOpacity>
-            <Text style={[styles.stepTitle, { color: colors.text }]}>Photos</Text>
-            <TouchableOpacity onPress={() => { if (photos.length === 0) { Alert.alert('Required', 'Take at least one photo.'); return; } setStep('voice'); }} style={styles.navBtn}>
-              <Text style={[styles.navText, { color: colors.primary }]}>Next </Text><Ionicons name="arrow-forward" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.stepHeader, styles.photosStepHeader, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Photos</Text>
           <Text style={[styles.taskName, { color: colors.primary }]}>{selectedTask?.title}</Text>
         </View>
-        <View style={styles.cameraContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back" onCameraReady={() => setCameraReady(true)} />
-          <View style={styles.cameraControls}>
-            <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
-              <Ionicons name="images-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.shutterButton} onPress={takePhoto} disabled={!cameraReady}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
-            <View style={[styles.photoCountBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.photoCountText}>{photos.length}</Text>
+        <View style={styles.photosContentWrap}>
+          <View style={styles.cameraContainer}>
+            <CameraView ref={cameraRef} style={styles.camera} facing="back" onCameraReady={() => setCameraReady(true)} />
+            <View style={styles.cameraControls}>
+              <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
+                <Ionicons name="images-outline" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.shutterButton} onPress={takePhoto} disabled={!cameraReady}>
+                <View style={styles.shutterInner} />
+              </TouchableOpacity>
+              <View style={[styles.photoCountBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.photoCountText}>{photos.length}</Text>
+              </View>
             </View>
           </View>
+          {photos.length > 0 && (
+            <ScrollView horizontal style={[styles.photoStrip, { borderTopColor: colors.border }]} contentContainerStyle={styles.photoStripContent} showsHorizontalScrollIndicator={false}>
+              {photos.map((uri, index) => (
+                <View key={index} style={styles.photoThumbContainer}>
+                  <Image source={{ uri }} style={styles.photoThumb} />
+                  <TouchableOpacity style={[styles.removePhoto, { backgroundColor: colors.error }]} onPress={() => removePhoto(index)}>
+                    <Ionicons name="close" size={14} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
         </View>
-        {photos.length > 0 && (
-          <ScrollView horizontal style={[styles.photoStrip, { borderTopColor: colors.border }]} contentContainerStyle={styles.photoStripContent}>
-            {photos.map((uri, index) => (
-              <View key={index} style={styles.photoThumbContainer}>
-                <Image source={{ uri }} style={styles.photoThumb} />
-                <TouchableOpacity style={[styles.removePhoto, { backgroundColor: colors.error }]} onPress={() => removePhoto(index)}>
-                  <Ionicons name="close" size={14} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
+        <View style={[styles.photosNavBar, { borderTopColor: colors.border }]}>
+          <TouchableOpacity onPress={resetCapture} style={styles.navBtn}>
+            <Ionicons name="arrow-back" size={20} color={colors.primary} /><Text style={[styles.navText, { color: colors.primary }]}> Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { if (photos.length === 0) { Alert.alert('Required', 'Take at least one photo.'); return; } setStep('voice'); }} style={styles.navBtn}>
+            <Text style={[styles.navText, { color: colors.primary }]}>Next </Text><Ionicons name="arrow-forward" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -288,6 +290,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 22, fontWeight: '700', marginTop: 16, marginBottom: 8 },
   emptySubtitle: { fontSize: 15, textAlign: 'center' },
   stepHeader: { padding: 16, borderBottomWidth: 1 },
+  photosStepHeader: { paddingTop: 8, paddingBottom: 8 },
   stepHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stepTitle: { fontSize: 20, fontWeight: '700' },
   stepSubtitle: { fontSize: 14, marginTop: 4 },
@@ -298,7 +301,9 @@ const styles = StyleSheet.create({
   taskSelectCard: { borderRadius: 12, padding: 16, marginBottom: 10, borderWidth: 1 },
   taskSelectTitle: { fontSize: 17, fontWeight: '600' },
   taskSelectLocation: { fontSize: 14 },
-  cameraContainer: { flex: 1, position: 'relative' },
+  photosContentWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  photosNavBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 28, borderTopWidth: 1 },
+  cameraContainer: { flex: 1, width: '100%', position: 'relative', alignSelf: 'center' },
   camera: { flex: 1 },
   cameraControls: { position: 'absolute', bottom: 20, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 40 },
   shutterButton: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#FFFFFF' },
