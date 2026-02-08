@@ -1,18 +1,16 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Switch, Share } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, SafeAreaView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../context/ThemeContext';
-import type { Project } from '../types/database';
 
 const TRADE_LABELS: Record<string, string> = { electrician: 'Electrician', plumber: 'Plumber', hvac: 'HVAC Technician', general: 'General Labor', other: 'Other' };
 const ROLE_LABELS: Record<string, string> = { worker: 'Field Worker', supervisor: 'Supervisor', admin: 'Admin' };
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, profile, projects, signOut, leaveProject } = useApp();
+  const { user, profile, projects, signOut } = useApp();
   const { colors, isDark, toggleTheme } = useTheme();
 
   const handleSignOut = () => {
@@ -20,36 +18,6 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); } },
     ]);
-  };
-
-  const handleCopyJoinCode = async (project: Project) => {
-    if (!project.join_code) return;
-    await Clipboard.setStringAsync(project.join_code);
-    Alert.alert('Copied', `Join code copied to clipboard.`);
-  };
-
-  const handleShareJoinCode = async (project: Project) => {
-    if (!project.join_code) return;
-    try {
-      await Share.share({
-        message: `Join my project "${project.name}" on Bild. Use this code: ${project.join_code}`,
-        title: 'Join project',
-      });
-    } catch {}
-  };
-
-  const handleLeaveProject = (project: Project) => {
-    Alert.alert(
-      'Leave project',
-      `Leave "${project.name}"? You can rejoin later with the join code.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: async () => {
-          const { error } = await leaveProject(project.id);
-          if (error) Alert.alert('Error', error.message);
-        } },
-      ]
-    );
   };
 
   return (
@@ -104,7 +72,12 @@ export default function ProfileScreen() {
           {projects.length === 0 ? (
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>Not a member of any projects</Text>
           ) : projects.map((project) => (
-            <View key={project.id} style={[styles.projectCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TouchableOpacity
+              key={project.id}
+              style={[styles.projectCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.push(`/project/${project.id}`)}
+              activeOpacity={0.8}
+            >
               <Text style={[styles.projectName, { color: colors.text }]}>{project.name}</Text>
               {project.address && (
                 <View style={styles.addressRow}>
@@ -115,36 +88,11 @@ export default function ProfileScreen() {
               <View style={styles.projectStatusBadge}>
                 <Text style={[styles.projectStatusText, { color: colors.success }]}>{project.status || 'active'}</Text>
               </View>
-              {project.join_code ? (
-                <View style={[styles.joinCodeRow, { borderTopColor: colors.border }]}>
-                  <Text style={[styles.joinCodeLabel, { color: colors.textMuted }]}>Join code</Text>
-                  <Text style={[styles.joinCodeValue, { color: colors.text }]} selectable>{project.join_code}</Text>
-                  <View style={styles.joinCodeActions}>
-                    <TouchableOpacity
-                      style={[styles.joinCodeBtn, { borderColor: colors.border }]}
-                      onPress={() => handleCopyJoinCode(project)}
-                    >
-                      <Ionicons name="copy-outline" size={18} color={colors.primary} />
-                      <Text style={[styles.joinCodeBtnText, { color: colors.primary }]}> Copy</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.joinCodeBtn, { borderColor: colors.border }]}
-                      onPress={() => handleShareJoinCode(project)}
-                    >
-                      <Ionicons name="share-outline" size={18} color={colors.primary} />
-                      <Text style={[styles.joinCodeBtnText, { color: colors.primary }]}> Share</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : null}
-              <TouchableOpacity
-                style={[styles.leaveProjectBtn, { borderColor: colors.error }]}
-                onPress={() => handleLeaveProject(project)}
-              >
-                <Ionicons name="exit-outline" size={18} color={colors.error} />
-                <Text style={[styles.leaveProjectBtnText, { color: colors.error }]}> Leave project</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.projectCardFooter}>
+                <Text style={[styles.tapHint, { color: colors.textMuted }]}>Tap for details</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -189,14 +137,8 @@ const styles = StyleSheet.create({
   projectAddress: { fontSize: 14 },
   projectStatusBadge: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(76,175,80,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   projectStatusText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  joinCodeRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
-  joinCodeLabel: { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
-  joinCodeValue: { fontSize: 16, fontWeight: '600', letterSpacing: 1, marginBottom: 8 },
-  joinCodeActions: { flexDirection: 'row', gap: 10 },
-  joinCodeBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1 },
-  joinCodeBtnText: { fontSize: 14, fontWeight: '600' },
-  leaveProjectBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1 },
-  leaveProjectBtnText: { fontSize: 14, fontWeight: '600' },
+  projectCardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12, gap: 4 },
+  tapHint: { fontSize: 13 },
   signOutButton: { borderRadius: 12, padding: 16, alignItems: 'center', borderWidth: 1, flexDirection: 'row', justifyContent: 'center' },
   signOutText: { fontSize: 16, fontWeight: '600' },
   version: { textAlign: 'center', fontSize: 13, marginTop: 16 },
