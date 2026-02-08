@@ -5,7 +5,9 @@ import {
   Pressable, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
+import ProjectSwitcher from '../../components/ProjectSwitcher';
 import { useTheme } from '../../context/ThemeContext';
 import { supabase } from '../../lib/supabase';
 import { getProjectFileViewUrl } from '../../lib/storage';
@@ -40,6 +42,7 @@ type BobMessage = {
 };
 
 export default function BobScreen() {
+  const router = useRouter();
   const { currentProject } = useApp();
   const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState<BobTab>('chat');
@@ -264,6 +267,15 @@ export default function BobScreen() {
   if (!currentProject) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <ProjectSwitcher />
+          <TouchableOpacity
+            style={[styles.profileButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push('/profile')}
+          >
+            <Ionicons name="person-outline" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.centered}>
           <Ionicons name="business-outline" size={48} color={colors.textMuted} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>No Project Selected</Text>
@@ -276,8 +288,13 @@ export default function BobScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Bob</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>AI assistant</Text>
+        <ProjectSwitcher />
+        <TouchableOpacity
+          style={[styles.profileButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => router.push('/profile')}
+        >
+          <Ionicons name="person-outline" size={20} color={colors.text} />
+        </TouchableOpacity>
       </View>
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         {(['chat', 'files'] as BobTab[]).map((tab) => (
@@ -469,9 +486,23 @@ export default function BobScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, borderBottomWidth: 1 },
-  headerTitle: { fontSize: 24, fontWeight: '700' },
-  headerSubtitle: { fontSize: 13, marginTop: 2 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
   tabBar: { flexDirection: 'row', borderBottomWidth: 1 },
   tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   tabText: { fontSize: 15, fontWeight: '500' },

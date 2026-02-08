@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, SafeAreaView,
-  Modal, FlatList, TextInput, KeyboardAvoidingView, Platform,
+  Modal, FlatList, TextInput, Keyboard, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -25,8 +26,27 @@ export default function TaskDetailScreen() {
   const [mentionSearch, setMentionSearch] = useState('');
   const [showMentionPicker, setShowMentionPicker] = useState(false);
   const [pendingMentions, setPendingMentions] = useState<string[]>([]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => { fetchTask(); fetchProofs(); }, [id]);
+
+  // Modal + KeyboardAvoidingView is unreliable on iOS; use keyboard listeners to push content up
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (!showComments) setKeyboardHeight(0);
+  }, [showComments]);
 
   const fetchTask = async () => { const { data } = await supabase.from('tasks').select('*').eq('id', id).single(); setTask(data); setLoading(false); };
   const fetchProofs = async () => { const { data } = await supabase.from('task_proofs').select('*').eq('task_id', id).order('created_at', { ascending: false }); setProofs(data || []); };
@@ -145,38 +165,41 @@ export default function TaskDetailScreen() {
         )}
       </View>
 
-      {/* Comments / mini-chat modal */}
+      {/* Comments modal: keyboard listeners push content up so input stays visible (KeyboardAvoidingView is unreliable inside Modal on iOS) */}
       <Modal visible={showComments} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowComments(false)}>
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.commentsModalHandle, { backgroundColor: colors.border, marginTop: 18 }]} />
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingTop: 12, paddingBottom: 12 }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Comments</Text>
             <TouchableOpacity onPress={() => setShowComments(false)}><Text style={[styles.cancelText, { color: colors.primary }]}>Done</Text></TouchableOpacity>
           </View>
-          <Text style={[styles.mentionHint, { color: colors.textMuted }]}>Use @ to mention someone from the project</Text>
-          <FlatList
-            data={comments}
-            keyExtractor={(c) => c.id}
-            contentContainerStyle={styles.commentsList}
-            ListEmptyComponent={<Text style={[styles.emptyComments, { color: colors.textMuted }]}>No comments yet. Ask a question or @mention a teammate.</Text>}
-            renderItem={({ item }) => (
-              <View style={[styles.commentBubble, item.user_id === user?.id ? { alignSelf: 'flex-end', backgroundColor: colors.primary } : { alignSelf: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.commentSender, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>{(item as any).profile?.full_name || 'Someone'}</Text>
-                <Text style={[styles.commentText, { color: item.user_id === user?.id ? '#FFFFFF' : colors.text }]}>{item.content}</Text>
-                <Text style={[styles.commentTime, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{item.created_at ? new Date(item.created_at).toLocaleString() : ''}</Text>
+          <View style={[styles.modalKeyboardWrap, { paddingBottom: keyboardHeight }]}>
+            <Text style={[styles.mentionHint, { color: colors.textMuted }]}>Use @ to mention someone from the project</Text>
+            <FlatList
+              data={comments}
+              keyExtractor={(c) => c.id}
+              style={styles.commentsListWrap}
+              contentContainerStyle={styles.commentsList}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={<Text style={[styles.emptyComments, { color: colors.textMuted }]}>No comments yet. Ask a question or @mention a teammate.</Text>}
+              renderItem={({ item }) => (
+                <View style={[styles.commentBubble, item.user_id === user?.id ? { alignSelf: 'flex-end', backgroundColor: colors.primary } : { alignSelf: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Text style={[styles.commentSender, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.9)' : colors.textMuted }]}>{(item as any).profile?.full_name || 'Someone'}</Text>
+                  <Text style={[styles.commentText, { color: item.user_id === user?.id ? '#FFFFFF' : colors.text }]}>{item.content}</Text>
+                  <Text style={[styles.commentTime, { color: item.user_id === user?.id ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{item.created_at ? new Date(item.created_at).toLocaleString() : ''}</Text>
+                </View>
+              )}
+            />
+            {showMentionPicker && memberOptions.length > 0 && (
+              <View style={[styles.mentionPicker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                {memberOptions.map((m) => (
+                  <TouchableOpacity key={m.user_id} style={styles.mentionOption} onPress={() => insertMention(m)}>
+                    <Text style={[styles.mentionOptionText, { color: colors.primary }]}>@{(m as any).profile?.full_name || 'Member'}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
-          />
-          {showMentionPicker && memberOptions.length > 0 && (
-            <View style={[styles.mentionPicker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {memberOptions.map((m) => (
-                <TouchableOpacity key={m.user_id} style={styles.mentionOption} onPress={() => insertMention(m)}>
-                  <Text style={[styles.mentionOptionText, { color: colors.primary }]}>@{(m as any).profile?.full_name || 'Member'}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
-            <View style={[styles.commentInputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            <View style={[styles.commentInputRow, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
               <TextInput
                 style={[styles.commentInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={commentInput}
@@ -190,8 +213,8 @@ export default function TaskDetailScreen() {
                 <Ionicons name="send" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -230,10 +253,13 @@ const styles = StyleSheet.create({
   completeButton: { flex: 2, padding: 16, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   completeButtonText: { fontSize: 16, color: '#FFFFFF', fontWeight: '700' },
   modalContainer: { flex: 1 },
+  commentsModalHandle: { width: 36, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 8 },
+  modalKeyboardWrap: { flex: 1 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1 },
   modalTitle: { fontSize: 20, fontWeight: '700' },
   cancelText: { fontSize: 17, fontWeight: '600' },
   mentionHint: { fontSize: 12, paddingHorizontal: 20, paddingTop: 8 },
+  commentsListWrap: { flex: 1 },
   commentsList: { padding: 16, paddingBottom: 12 },
   emptyComments: { fontSize: 15, textAlign: 'center', paddingVertical: 24 },
   commentBubble: { maxWidth: '85%', borderRadius: 14, padding: 12, marginBottom: 8, borderWidth: 1 },
