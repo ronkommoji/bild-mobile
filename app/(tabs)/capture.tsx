@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Image, ScrollView,
-  Alert, ActivityIndicator, SafeAreaView, FlatList,
+  Alert, ActivityIndicator, SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -16,15 +16,15 @@ import { supabase } from '../../lib/supabase';
 import VoiceRecorder from '../../components/VoiceRecorder';
 import { Task } from '../../types/database';
 
-type CaptureStep = 'select-task' | 'photos' | 'voice' | 'review' | 'complete';
+type CaptureStep = 'photos' | 'voice' | 'review' | 'complete';
 
 export default function CaptureScreen() {
   const router = useRouter();
   const { taskId: paramTaskId } = useLocalSearchParams<{ taskId?: string }>();
   const { user, currentProject } = useApp();
   const { colors } = useTheme();
-  const { activeTasks, updateTaskStatus } = useTasks(currentProject?.id, user?.id);
-  const [step, setStep] = useState<CaptureStep>('select-task');
+  const { updateTaskStatus } = useTasks(currentProject?.id, user?.id);
+  const [step, setStep] = useState<CaptureStep>('voice');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [voiceUri, setVoiceUri] = useState<string | null>(null);
@@ -40,11 +40,17 @@ export default function CaptureScreen() {
       const { data } = await supabase.from('tasks').select('*').eq('id', paramTaskId).eq('project_id', currentProject.id).single();
       if (data) {
         setSelectedTask(data as Task);
-        setStep('photos');
+        setStep('voice');
       }
     };
     load();
   }, [paramTaskId, currentProject?.id]);
+
+  useEffect(() => {
+    if (currentProject && !paramTaskId) router.replace('/(tabs)/tasks');
+  }, [currentProject, paramTaskId]);
+
+  const goToTasksTab = () => router.replace('/(tabs)/tasks');
 
   const takePhoto = async () => {
     if (!cameraRef.current) return;
@@ -59,7 +65,7 @@ export default function CaptureScreen() {
 
   const removePhoto = (index: number) => setPhotos((prev) => prev.filter((_, i) => i !== index));
 
-  const handleVoiceComplete = (text: string, uri?: string) => { setTranscript(text); setVoiceUri(uri || null); setStep('review'); };
+  const handleVoiceComplete = (text: string, uri?: string) => { setTranscript(text); setVoiceUri(uri || null); setStep('photos'); };
 
   const handleSubmit = async () => {
     if (!user || !selectedTask || !currentProject) return;
@@ -95,15 +101,6 @@ export default function CaptureScreen() {
     setSubmitting(false);
   };
 
-  const resetCapture = () => {
-    setStep('select-task');
-    setSelectedTask(null);
-    setPhotos([]);
-    setVoiceUri(null);
-    setTranscript('');
-    if (paramTaskId) router.replace('/(tabs)/capture');
-  };
-
   if (!currentProject) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -116,33 +113,7 @@ export default function CaptureScreen() {
     );
   }
 
-  if (step === 'select-task') {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.stepHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Select Task</Text>
-          <Text style={[styles.stepSubtitle, { color: colors.textMuted }]}>Choose which task to document</Text>
-        </View>
-        {activeTasks.length === 0 ? (
-          <View style={styles.centered}><Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>No active tasks to capture</Text></View>
-        ) : (
-          <FlatList data={activeTasks} keyExtractor={(item) => item.id} contentContainerStyle={styles.taskList}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={[styles.taskSelectCard, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => { setSelectedTask(item); setStep('photos'); }}>
-                <Text style={[styles.taskSelectTitle, { color: colors.text }]}>{item.title}</Text>
-                {item.location && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <Ionicons name="location-outline" size={14} color={colors.textLight} />
-                    <Text style={[styles.taskSelectLocation, { color: colors.textLight }]}> {item.location}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            )}
-          />
-        )}
-      </SafeAreaView>
-    );
-  }
+  if (!paramTaskId) return null;
 
   if (step === 'photos') {
     if (!permission?.granted) {
@@ -162,7 +133,13 @@ export default function CaptureScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.stepHeader, styles.photosStepHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Photos</Text>
+          <View style={styles.centeredHeaderRow}>
+            <TouchableOpacity onPress={() => setStep('voice')} style={styles.navBtn}>
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <Text style={[styles.stepTitle, styles.stepTitleAbsoluteCenter, { color: colors.text }]} pointerEvents="none">Photos</Text>
+            <View style={styles.navBtnSpacer} />
+          </View>
           <Text style={[styles.taskName, { color: colors.primary }]}>{selectedTask?.title}</Text>
         </View>
         <View style={styles.photosContentWrap}>
@@ -175,9 +152,12 @@ export default function CaptureScreen() {
               <TouchableOpacity style={styles.shutterButton} onPress={takePhoto} disabled={!cameraReady}>
                 <View style={styles.shutterInner} />
               </TouchableOpacity>
-              <View style={[styles.photoCountBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.photoCountText}>{photos.length}</Text>
-              </View>
+              <TouchableOpacity
+                style={[styles.photoCheckButton, { backgroundColor: colors.primary }]}
+                onPress={() => { if (photos.length === 0) { Alert.alert('Required', 'Add at least one photo.'); return; } setStep('review'); }}
+              >
+                <Ionicons name="checkmark" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
           {photos.length > 0 && (
@@ -193,14 +173,6 @@ export default function CaptureScreen() {
             </ScrollView>
           )}
         </View>
-        <View style={[styles.photosNavBar, { borderTopColor: colors.border }]}>
-          <TouchableOpacity onPress={resetCapture} style={styles.navBtn}>
-            <Ionicons name="arrow-back" size={20} color={colors.primary} /><Text style={[styles.navText, { color: colors.primary }]}> Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { if (photos.length === 0) { Alert.alert('Required', 'Take at least one photo.'); return; } setStep('voice'); }} style={styles.navBtn}>
-            <Text style={[styles.navText, { color: colors.primary }]}>Next </Text><Ionicons name="arrow-forward" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
       </SafeAreaView>
     );
   }
@@ -208,31 +180,37 @@ export default function CaptureScreen() {
   if (step === 'voice') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.stepHeader, { borderBottomColor: colors.border }]}>
-          <View style={styles.stepHeaderRow}>
-            <TouchableOpacity onPress={() => setStep('photos')} style={styles.navBtn}>
-              <Ionicons name="arrow-back" size={20} color={colors.primary} /><Text style={[styles.navText, { color: colors.primary }]}> Back</Text>
+        <View style={[styles.stepHeader, styles.photosStepHeader, { borderBottomColor: colors.border }]}>
+          <View style={styles.centeredHeaderRow}>
+            <TouchableOpacity onPress={goToTasksTab} style={styles.navBtn}>
+              <Ionicons name="arrow-back" size={24} color={colors.primary} />
             </TouchableOpacity>
-            <Text style={[styles.stepTitle, { color: colors.text }]}>Voice Note</Text>
-            <TouchableOpacity onPress={() => setStep('review')} style={styles.navBtn}>
+            <Text style={[styles.stepTitle, styles.stepTitleAbsoluteCenter, { color: colors.text }]} pointerEvents="none">Voice Note</Text>
+            <TouchableOpacity onPress={() => setStep('photos')} style={styles.navBtn}>
               <Text style={[styles.navText, { color: colors.primary }]}>Skip </Text><Ionicons name="arrow-forward" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
-          <Text style={[styles.stepSubtitle, { color: colors.textMuted }]}>Describe the work you completed</Text>
+          {selectedTask?.title ? (
+            <Text style={[styles.taskName, { color: colors.primary }]} numberOfLines={2}>{selectedTask.title}</Text>
+          ) : null}
         </View>
-        <VoiceRecorder onTranscriptionComplete={handleVoiceComplete} />
+        <VoiceRecorder
+          onTranscriptionComplete={handleVoiceComplete}
+          hintText="Describe the work you completed"
+        />
       </SafeAreaView>
     );
   }
 
-  return (
+  if (step === 'review') {
+    return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.stepHeader, { borderBottomColor: colors.border }]}>
         <View style={styles.stepHeaderRow}>
-          <TouchableOpacity onPress={() => setStep('voice')} style={styles.navBtn}>
-            <Ionicons name="arrow-back" size={20} color={colors.primary} /><Text style={[styles.navText, { color: colors.primary }]}> Back</Text>
+          <TouchableOpacity onPress={() => setStep('photos')} style={styles.navBtn}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </TouchableOpacity>
-          <Text style={[styles.stepTitle, { color: colors.text }]}>Review</Text>
+          <Text style={[styles.stepTitle, { color: colors.text }]}>Approve</Text>
           <View style={{ width: 60 }} />
         </View>
       </View>
@@ -260,7 +238,8 @@ export default function CaptureScreen() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
-  );
+    );
+  }
 
   if (step === 'complete') {
     return (
@@ -273,7 +252,7 @@ export default function CaptureScreen() {
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             {selectedTask?.title} has been marked complete with your photos and voice note.
           </Text>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={resetCapture}>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={goToTasksTab}>
             <Text style={styles.primaryButtonText}>Done</Text>
           </TouchableOpacity>
         </View>
@@ -291,10 +270,14 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 15, textAlign: 'center' },
   stepHeader: { padding: 16, borderBottomWidth: 1 },
   photosStepHeader: { paddingTop: 8, paddingBottom: 8 },
+  photosHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  centeredHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', position: 'relative' },
+  navBtnSpacer: { minWidth: 40 },
   stepHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stepTitle: { fontSize: 20, fontWeight: '700' },
+  stepTitleAbsoluteCenter: { position: 'absolute', left: 0, right: 0, textAlign: 'center' },
   stepSubtitle: { fontSize: 14, marginTop: 4 },
-  taskName: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  taskName: { fontSize: 14, fontWeight: '600', marginTop: 4, textAlign: 'center' },
   navBtn: { flexDirection: 'row', alignItems: 'center' },
   navText: { fontSize: 16, fontWeight: '600' },
   taskList: { padding: 16 },
@@ -302,15 +285,13 @@ const styles = StyleSheet.create({
   taskSelectTitle: { fontSize: 17, fontWeight: '600' },
   taskSelectLocation: { fontSize: 14 },
   photosContentWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  photosNavBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 28, borderTopWidth: 1 },
   cameraContainer: { flex: 1, width: '100%', position: 'relative', alignSelf: 'center' },
   camera: { flex: 1 },
   cameraControls: { position: 'absolute', bottom: 20, left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 40 },
   shutterButton: { width: 72, height: 72, borderRadius: 36, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#FFFFFF' },
   shutterInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF' },
   galleryButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center' },
-  photoCountBadge: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  photoCountText: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  photoCheckButton: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
   photoStrip: { maxHeight: 100, borderTopWidth: 1 },
   photoStripContent: { padding: 8, gap: 8 },
   photoThumbContainer: { position: 'relative' },

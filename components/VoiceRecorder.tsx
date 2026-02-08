@@ -38,9 +38,11 @@ async function tryCopyRecordingToStablePath(recorderUri: string): Promise<string
 interface VoiceRecorderProps {
   onTranscriptionComplete: (transcript: string, audioUri?: string) => void;
   showTranscript?: boolean;
+  /** Hint text shown below the Record button */
+  hintText?: string;
 }
 
-export default function VoiceRecorder({ onTranscriptionComplete, showTranscript = true }: VoiceRecorderProps) {
+export default function VoiceRecorder({ onTranscriptionComplete, showTranscript = true, hintText }: VoiceRecorderProps) {
   const { colors } = useTheme();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
@@ -107,6 +109,9 @@ export default function VoiceRecorder({ onTranscriptionComplete, showTranscript 
           <Ionicons name={isRecording ? 'stop' : 'mic'} size={36} color="#FFFFFF" />
           <Text style={styles.recordButtonText}>{isRecording ? 'Stop' : 'Record'}</Text>
         </TouchableOpacity>
+        {hintText ? (
+          <Text style={[styles.hintText, { color: colors.textMuted }]}>{hintText}</Text>
+        ) : null}
       </View>
       {transcribing && (
         <View style={styles.transcribingContainer}>
@@ -132,6 +137,7 @@ export default function VoiceRecorder({ onTranscriptionComplete, showTranscript 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   recorderArea: { alignItems: 'center', gap: 16 },
+  hintText: { fontSize: 15, textAlign: 'center', marginTop: 8, paddingHorizontal: 24 },
   recordingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   recordingDot: { width: 12, height: 12, borderRadius: 6 },
   recordingTime: { fontSize: 24, fontWeight: '700', fontVariant: ['tabular-nums'] },
