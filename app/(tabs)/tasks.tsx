@@ -133,7 +133,7 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <ProjectSwitcher />
         <TouchableOpacity
           style={[styles.profileButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -143,12 +143,8 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.titleRow}>
-        <Text style={[styles.screenTitle, { color: colors.text }]}>Tasks</Text>
-      </View>
-
       {/* Search + Filter button on same row */}
-      <View style={styles.searchRow}>
+      <View style={[styles.searchRow, { backgroundColor: colors.background }]}>
         <TextInput
           style={[
             styles.searchInput,
@@ -195,7 +191,7 @@ export default function TasksScreen() {
             const isCompleted = section.title === 'Completed';
             const count = section.count;
             return (
-              <View style={[styles.sectionHeaderOuter, { borderBottomColor: colors.border }]}>
+              <View style={[styles.sectionHeaderOuter, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
                 <TouchableOpacity
                   style={styles.sectionHeaderInner}
                   onPress={isCompleted ? () => setCompletedSectionOpen((o) => !o) : undefined}
@@ -332,8 +328,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
   },
-  titleRow: { paddingHorizontal: 20, paddingVertical: 12 },
-  screenTitle: { fontSize: 22, fontWeight: '700' },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

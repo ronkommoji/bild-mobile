@@ -322,7 +322,7 @@ export default function BobScreen() {
                 <Ionicons name="chatbubbles-outline" size={48} color={colors.textMuted} />
                 <Text style={[styles.emptyTitle, { color: colors.text }]}>Chat with Bob</Text>
                 <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                  {syncing ? 'Syncing files with Bob…' : `Ask anything about building ${currentProject?.name ?? 'this project'}. Bob is trained on all your docs.`}
+                  {syncing ? 'Syncing files with Bob…' : `Bob is trained on all your docs, ask him anything!`}
                 </Text>
                 {syncError && (
                   <Text style={[styles.syncError, { color: colors.textMuted }]}>{syncError}</Text>
