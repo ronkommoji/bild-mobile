@@ -220,9 +220,9 @@ export default function TasksScreen() {
           }}
           renderItem={({ item, section, index }) => {
             const isCompleted = section.title === 'Completed';
-            const isFirstTask = !isCompleted && index === 0;
+            const isFirstInSection = index === 0;
             return (
-              <View style={[styles.taskCardWrap, isFirstTask && styles.firstTaskSpacer]}>
+              <View style={[styles.taskCardWrap, isFirstInSection && styles.firstTaskSpacer]}>
                 <TaskCard
                   task={item}
                   proofCount={proofCountByTaskId[item.id] ?? 0}
