@@ -80,9 +80,14 @@ export default function CaptureScreen() {
       for (const photoUri of photos) { const url = await uploadPhoto(photoUri, user.id); if (url) photoUrls.push(url); }
       let voiceUrl: string | null = null;
       if (voiceUri) voiceUrl = await uploadVoiceNote(voiceUri, user.id);
-      for (const photoUrl of photoUrls) {
-        await supabase.from('task_proofs').insert({ task_id: selectedTask.id, photo_url: photoUrl, voice_note_url: voiceUrl, transcript, submitted_by: user.id });
-      }
+      await supabase.from('task_proofs').insert({
+        task_id: selectedTask.id,
+        photo_url: photoUrls[0] || null,
+        photo_urls: photoUrls,
+        voice_note_url: voiceUrl,
+        transcript: transcript || null,
+        submitted_by: user.id,
+      });
       await supabase.from('activity_feed').insert({ project_id: currentProject.id, user_id: user.id, action: 'proof_submitted', task_id: selectedTask.id, metadata: { photo_count: photoUrls.length, has_voice: !!voiceUrl } });
       await updateTaskStatus(selectedTask.id, 'completed');
       setStep('complete');

@@ -300,6 +300,7 @@ export type Database = {
           created_at: string | null
           id: string
           photo_url: string | null
+          photo_urls: string[] | null
           submitted_by: string | null
           task_id: string
           transcript: string | null
@@ -310,6 +311,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           photo_url?: string | null
+          photo_urls?: string[] | null
           submitted_by?: string | null
           task_id: string
           transcript?: string | null
@@ -320,6 +322,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           photo_url?: string | null
+          photo_urls?: string[] | null
           submitted_by?: string | null
           task_id?: string
           transcript?: string | null

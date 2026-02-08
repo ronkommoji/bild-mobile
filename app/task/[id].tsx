@@ -147,15 +147,26 @@ export default function TaskDetailScreen() {
         </TouchableOpacity>
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Proof ({proofs.length} {proofs.length === 1 ? 'submission' : 'submissions'})</Text>
-          {proofs.length === 0 ? <Text style={[styles.noProofs, { color: colors.textMuted }]}>No proof submitted yet</Text> : proofs.map((proof) => (
-            <View key={proof.id} style={[styles.proofCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {proof.photo_url && <Image source={{ uri: proof.photo_url }} style={styles.proofPhoto} resizeMode="cover" />}
-              {proof.transcript && (
-                <View style={styles.transcriptRow}><Ionicons name="mic-outline" size={14} color={colors.textLight} /><Text style={[styles.proofTranscript, { color: colors.text }]}> {proof.transcript}</Text></View>
-              )}
-              <Text style={[styles.proofDate, { color: colors.textMuted }]}>{new Date(proof.created_at || '').toLocaleString()}</Text>
-            </View>
-          ))}
+          {proofs.length === 0 ? <Text style={[styles.noProofs, { color: colors.textMuted }]}>No proof submitted yet</Text> : proofs.map((proof) => {
+            const raw = proof.photo_urls;
+            const arr = Array.isArray(raw) ? raw : (typeof raw === 'string' ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : []);
+            const imageUrls: string[] = arr.length > 0 ? arr : (proof.photo_url ? [proof.photo_url] : []);
+            return (
+              <View key={proof.id} style={[styles.proofCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                {imageUrls.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.proofPhotosRow}>
+                    {imageUrls.map((uri, i) => (
+                      <Image key={i} source={{ uri }} style={styles.proofPhoto} resizeMode="cover" />
+                    ))}
+                  </ScrollView>
+                )}
+                {proof.transcript ? (
+                  <View style={styles.transcriptRow}><Ionicons name="mic-outline" size={14} color={colors.textLight} /><Text style={[styles.proofTranscript, { color: colors.text }]}> {proof.transcript}</Text></View>
+                ) : null}
+                <Text style={[styles.proofDate, { color: colors.textMuted }]}>{new Date(proof.created_at || '').toLocaleString()}</Text>
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
       <View style={[styles.actionBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
@@ -250,7 +261,8 @@ const styles = StyleSheet.create({
   commentsCtaText: { fontSize: 16, fontWeight: '600', flex: 1 },
   noProofs: { fontSize: 15, fontStyle: 'italic' },
   proofCard: { borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1 },
-  proofPhoto: { width: '100%', height: 200, borderRadius: 8, marginBottom: 8 },
+  proofPhotosRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  proofPhoto: { width: 200, height: 200, borderRadius: 8 },
   transcriptRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
   proofTranscript: { fontSize: 14, lineHeight: 20, flex: 1 },
   proofDate: { fontSize: 12 },
